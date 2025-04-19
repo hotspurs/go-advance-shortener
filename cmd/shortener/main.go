@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
 	"io"
 	"net/http"
@@ -22,7 +21,6 @@ func main() {
 			}
 			short := rand.String(8)
 			storage[short] = string(body)
-			fmt.Println(storage)
 			w.Header().Add("Content-Type", "text/plain")
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte("http://localhost:8080/" + short))
