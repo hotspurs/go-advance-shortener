@@ -8,10 +8,8 @@ type Storage interface {
 func NewMemoryStorage(initial map[string]string) *MemoryStorage {
 	data := make(map[string]string)
 
-	if initial != nil {
-		for key, value := range initial {
-			data[key] = value
-		}
+	for key, value := range initial {
+		data[key] = value
 	}
 
 	return &MemoryStorage{
