@@ -34,7 +34,7 @@ func GenerateHandler(w http.ResponseWriter, r *http.Request, data storage.Storag
 	data.Add(short, string(body))
 	w.Header().Add("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(config.BaseURL + short))
+	w.Write([]byte(config.BaseURL + "/" + short))
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request, data storage.Storage) {
