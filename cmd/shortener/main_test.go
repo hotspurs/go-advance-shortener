@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestGenerateHandler(t *testing.T) {
+	cfg := config.Init()
 	type request struct {
 		method string
 		body   io.Reader
@@ -37,7 +39,7 @@ func TestGenerateHandler(t *testing.T) {
 			},
 			want: want{
 				code:        http.StatusCreated,
-				response:    "http://localhost:8080/",
+				response:    cfg.BaseURL,
 				contentType: "text/plain",
 			},
 			data: storage.NewMemoryStorage(map[string]string{}),
@@ -48,7 +50,7 @@ func TestGenerateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
 			w := httptest.NewRecorder()
-			GenerateHandler(w, request, test.data)
+			GenerateHandler(w, request, test.data, cfg)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode)
