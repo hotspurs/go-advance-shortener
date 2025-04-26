@@ -15,7 +15,7 @@ func Init() *Config {
 	baseURL := flag.String("b", "http://localhost:8080", "Base URL")
 
 	envAddress := os.Getenv("SERVER_ADDRESS")
-	envBaseUrl := os.Getenv("BASE_URL")
+	envBaseURL := os.Getenv("BASE_URL")
 
 	flag.Parse()
 
@@ -23,8 +23,8 @@ func Init() *Config {
 		address = &envAddress
 	}
 
-	if envBaseUrl != "" {
-		address = &envBaseUrl
+	if envBaseURL != "" {
+		baseURL = &envBaseURL
 	}
 
 	cfg := &Config{
