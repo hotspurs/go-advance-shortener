@@ -2,14 +2,15 @@ package main
 
 import (
 	"bytes"
-	"github.com/hotspurs/go-advance-shortener/internal/config"
-	"github.com/hotspurs/go-advance-shortener/internal/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/hotspurs/go-advance-shortener/internal/config"
+	"github.com/hotspurs/go-advance-shortener/internal/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateHandler(t *testing.T) {
@@ -25,13 +26,13 @@ func TestGenerateHandler(t *testing.T) {
 		contentType string
 	}
 	tests := []struct {
-		data    storage.Storage
+		data    Storage
 		name    string
 		want    want
 		request request
 	}{
 		{
-			name: "generate positive",
+			name: "GeneratePositive",
 			request: request{
 				method: http.MethodPost,
 				url:    "/",
@@ -53,13 +54,13 @@ func TestGenerateHandler(t *testing.T) {
 			GenerateHandler(w, request, test.data, cfg)
 
 			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
+			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 
-			require.NoError(t, err)
-			assert.Contains(t, string(resBody), test.want.response)
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			require.NoError(t, err, "unexpected error reading response body: %v", err)
+			assert.Contains(t, string(resBody), test.want.response, "expected response to contain %q, got %q", test.want.response, string(resBody))
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"), "expected content type %q, got %q", test.want.contentType, res.Header.Get("Content-Type"))
 		})
 	}
 }
@@ -76,13 +77,13 @@ func TestGetHandler(t *testing.T) {
 		contentType string
 	}
 	tests := []struct {
-		data    storage.Storage
+		data    Storage
 		name    string
 		want    want
 		request request
 	}{
 		{
-			name: "get positive",
+			name: "GetPositive",
 			request: request{
 				method: http.MethodGet,
 				url:    "/tdluNOuy",
@@ -106,13 +107,13 @@ func TestGetHandler(t *testing.T) {
 			GetHandler(w, request, test.data)
 
 			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
+			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
 			defer res.Body.Close()
 			resBody, err := io.ReadAll(res.Body)
 
-			require.NoError(t, err)
-			assert.Contains(t, string(resBody), test.want.response)
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			require.NoError(t, err, "unexpected error reading response body: %v", err)
+			assert.Contains(t, string(resBody), test.want.response, "expected response to contain %q, got %q", test.want.response, string(resBody))
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"), "expected content type %q, got %q", test.want.contentType, res.Header.Get("Content-Type"))
 		})
 	}
 }
