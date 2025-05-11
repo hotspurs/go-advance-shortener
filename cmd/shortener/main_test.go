@@ -45,6 +45,20 @@ func TestGenerateHandler(t *testing.T) {
 			},
 			data: storage.NewMemoryStorage(map[string]string{}),
 		},
+		{
+			name: "GenerateNegative_BadBody",
+			request: request{
+				method: http.MethodPost,
+				url:    "/",
+				body:   errReader{},
+			},
+			want: want{
+				code:        http.StatusInternalServerError,
+				response:    "",
+				contentType: "",
+			},
+			data: storage.NewMemoryStorage(map[string]string{}),
+		},
 	}
 
 	for _, test := range tests {
@@ -98,6 +112,20 @@ func TestGetHandler(t *testing.T) {
 				"tdluNOuy": "https://ya.ru",
 			}),
 		},
+		{
+			name: "GetNegative_UnknownKey",
+			request: request{
+				method: http.MethodGet,
+				url:    "/unknownkey",
+				body:   bytes.NewReader([]byte("")),
+			},
+			want: want{
+				code:        http.StatusTemporaryRedirect,
+				response:    "",
+				contentType: "",
+			},
+			data: storage.NewMemoryStorage(map[string]string{}),
+		},
 	}
 
 	for _, test := range tests {
@@ -116,4 +144,10 @@ func TestGetHandler(t *testing.T) {
 			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"), "expected content type %q, got %q", test.want.contentType, res.Header.Get("Content-Type"))
 		})
 	}
+}
+
+type errReader struct{}
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, io.ErrUnexpectedEOF
 }
