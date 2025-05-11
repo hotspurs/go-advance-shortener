@@ -1,10 +1,5 @@
 package storage
 
-type Storage interface {
-	Add(key string, value string)
-	Get(key string) string
-}
-
 func NewMemoryStorage(initial map[string]string) *MemoryStorage {
 	data := make(map[string]string)
 

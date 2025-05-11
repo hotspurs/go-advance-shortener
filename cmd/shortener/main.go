@@ -1,14 +1,20 @@
 package main
 
 import (
+	"io"
+	"net/http"
+	"strings"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
 	"github.com/hotspurs/go-advance-shortener/internal/storage"
-	"io"
-	"net/http"
-	"strings"
 )
+
+type Storage interface {
+	Add(key string, value string)
+	Get(key string) string
+}
 
 func main() {
 	cfg := config.Init()
@@ -24,7 +30,7 @@ func main() {
 	http.ListenAndServe(cfg.Address, r)
 }
 
-func GenerateHandler(w http.ResponseWriter, r *http.Request, data storage.Storage, config *config.Config) {
+func GenerateHandler(w http.ResponseWriter, r *http.Request, data Storage, config *config.Config) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -37,7 +43,7 @@ func GenerateHandler(w http.ResponseWriter, r *http.Request, data storage.Storag
 	w.Write([]byte(config.BaseURL + "/" + short))
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request, data storage.Storage) {
+func GetHandler(w http.ResponseWriter, r *http.Request, data Storage) {
 	short := strings.TrimPrefix(r.URL.Path, "/")
 	w.Header().Add("Location", data.Get(short))
 	w.WriteHeader(http.StatusTemporaryRedirect)
