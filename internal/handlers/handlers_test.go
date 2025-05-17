@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -65,7 +65,7 @@ func TestGenerateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
 			w := httptest.NewRecorder()
-			GenerateHandler(w, request, test.data, cfg)
+			GenerateHandler(test.data, cfg)(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
@@ -132,7 +132,7 @@ func TestGetHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
 			w := httptest.NewRecorder()
-			GetHandler(w, request, test.data)
+			GetHandler(test.data)(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)

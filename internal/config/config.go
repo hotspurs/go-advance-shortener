@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Address string
 	BaseURL string
+	Debug   bool
 }
 
 func Init() *Config {
@@ -16,6 +17,13 @@ func Init() *Config {
 
 	envAddress := os.Getenv("SERVER_ADDRESS")
 	envBaseURL := os.Getenv("BASE_URL")
+
+	envDebug := os.Getenv("DEBUG")
+
+	var debug bool
+	if envDebug != "" {
+		debug = true
+	}
 
 	flag.Parse()
 
@@ -30,6 +38,7 @@ func Init() *Config {
 	cfg := &Config{
 		Address: *address,
 		BaseURL: *baseURL,
+		Debug:   debug,
 	}
 
 	return cfg
