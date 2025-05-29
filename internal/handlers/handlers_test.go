@@ -121,7 +121,7 @@ func TestShortenHandler(t *testing.T) {
 			want: want{
 				code:        http.StatusBadRequest,
 				response:    "",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 			data: storage.NewMemoryStorage(map[string]string{}),
 		},
