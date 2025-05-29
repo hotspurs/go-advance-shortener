@@ -79,6 +79,72 @@ func TestGenerateHandler(t *testing.T) {
 	}
 }
 
+func TestShortenHandler(t *testing.T) {
+	cfg := config.Init()
+	type request struct {
+		method string
+		body   io.Reader
+		url    string
+	}
+	type want struct {
+		code        int
+		response    string
+		contentType string
+	}
+	tests := []struct {
+		data    Storage
+		name    string
+		want    want
+		request request
+	}{
+		{
+			name: "ShortenPositive",
+			request: request{
+				method: http.MethodPost,
+				url:    "/",
+				body:   bytes.NewReader([]byte("{\"url\": \"https://ya.ru\"}")),
+			},
+			want: want{
+				code:        http.StatusCreated,
+				response:    cfg.BaseURL,
+				contentType: "application/json",
+			},
+			data: storage.NewMemoryStorage(map[string]string{}),
+		},
+		{
+			name: "ShortenNegative_BadBody",
+			request: request{
+				method: http.MethodPost,
+				url:    "/",
+				body:   errReader{},
+			},
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				contentType: "text/plain; charset=utf-8",
+			},
+			data: storage.NewMemoryStorage(map[string]string{}),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
+			w := httptest.NewRecorder()
+			ShortenHandler(test.data, cfg)(w, request)
+
+			res := w.Result()
+			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err, "unexpected error reading response body: %v", err)
+			assert.Contains(t, string(resBody), test.want.response, "expected response to contain %q, got %q", test.want.response, string(resBody))
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"), "expected content type %q, got %q", test.want.contentType, res.Header.Get("Content-Type"))
+		})
+	}
+}
+
 func TestGetHandler(t *testing.T) {
 	type request struct {
 		method string
