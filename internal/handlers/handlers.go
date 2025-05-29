@@ -16,7 +16,7 @@ type Storage interface {
 }
 
 type Request struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type Response struct {
@@ -60,7 +60,7 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 			return
 		}
 		short := rand.String(8)
-		data.Add(short, req.Url)
+		data.Add(short, req.URL)
 		var res Response
 		res.Result = config.BaseURL + "/" + short
 		w.Header().Add("Content-Type", "application/json")
