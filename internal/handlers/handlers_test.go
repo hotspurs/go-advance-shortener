@@ -119,7 +119,7 @@ func TestShortenHandler(t *testing.T) {
 				body:   errReader{},
 			},
 			want: want{
-				code:        http.StatusInternalServerError,
+				code:        http.StatusBadRequest,
 				response:    "",
 				contentType: "",
 			},
