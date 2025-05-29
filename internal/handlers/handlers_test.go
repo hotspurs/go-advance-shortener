@@ -13,9 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var cfg = config.Init()
-
 func TestGenerateHandler(t *testing.T) {
+	cfg := config.Init()
 	type request struct {
 		method string
 		body   io.Reader
@@ -81,6 +80,7 @@ func TestGenerateHandler(t *testing.T) {
 }
 
 func TestShortenHandler(t *testing.T) {
+	cfg := config.Init()
 	type request struct {
 		method string
 		body   io.Reader

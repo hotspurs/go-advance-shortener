@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"os"
+	"sync"
 )
 
 type Config struct {
@@ -11,35 +12,42 @@ type Config struct {
 	Debug   bool
 }
 
+var (
+	cfg  *Config
+	once sync.Once
+)
+
 func Init() *Config {
-	address := flag.String("a", "localhost:8080", "HTTP server address")
-	baseURL := flag.String("b", "http://localhost:8080", "Base URL")
+	once.Do(func() {
+		address := flag.String("a", "localhost:8080", "HTTP server address")
+		baseURL := flag.String("b", "http://localhost:8080", "Base URL")
 
-	envAddress := os.Getenv("SERVER_ADDRESS")
-	envBaseURL := os.Getenv("BASE_URL")
+		envAddress := os.Getenv("SERVER_ADDRESS")
+		envBaseURL := os.Getenv("BASE_URL")
 
-	envDebug := os.Getenv("DEBUG")
+		envDebug := os.Getenv("DEBUG")
 
-	var debug bool
-	if envDebug != "" {
-		debug = true
-	}
+		var debug bool
+		if envDebug != "" {
+			debug = true
+		}
 
-	flag.Parse()
+		flag.Parse()
 
-	if envAddress != "" {
-		address = &envAddress
-	}
+		if envAddress != "" {
+			address = &envAddress
+		}
 
-	if envBaseURL != "" {
-		baseURL = &envBaseURL
-	}
+		if envBaseURL != "" {
+			baseURL = &envBaseURL
+		}
 
-	cfg := &Config{
-		Address: *address,
-		BaseURL: *baseURL,
-		Debug:   debug,
-	}
+		cfg = &Config{
+			Address: *address,
+			BaseURL: *baseURL,
+			Debug:   debug,
+		}
+	})
 
 	return cfg
 }
