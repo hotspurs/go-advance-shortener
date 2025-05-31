@@ -20,7 +20,7 @@ func main() {
 
 	sugar.Infof("Initialize")
 
-	r.Method("POST", "/", logger.WithLogging(handlers.GenerateHandler(data, cfg), log))
+	r.Method("POST", "/", compress.WithGzip(logger.WithLogging(handlers.GenerateHandler(data, cfg), log)))
 	r.Method("POST", "/api/shorten", compress.WithGzip(logger.WithLogging(handlers.ShortenHandler(data, cfg), log)))
 	r.Method("GET", "/{link}", logger.WithLogging(handlers.GetHandler(data), log))
 
