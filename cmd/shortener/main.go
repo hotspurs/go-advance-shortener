@@ -22,7 +22,7 @@ func main() {
 
 	r.Method("POST", "/", logger.WithLogging(handlers.GenerateHandler(data, cfg), log))
 	r.Method("POST", "/api/shorten", compress.WithGzip(logger.WithLogging(handlers.ShortenHandler(data, cfg), log)))
-	r.Method("GET", "/{link}", compress.WithGzip(logger.WithLogging(handlers.GetHandler(data), log)))
+	r.Method("GET", "/{link}", logger.WithLogging(handlers.GetHandler(data), log))
 
 	sugar.Infof("Server is listen on port %s", cfg.Address)
 	http.ListenAndServe(cfg.Address, r)

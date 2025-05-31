@@ -6,7 +6,6 @@ import (
 	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -34,11 +33,24 @@ func GetHandler(data Storage) http.HandlerFunc {
 
 func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
+		var encoding = r.Header.Get("Content-Encoding")
+		var buf bytes.Buffer
+		var body []byte
+		_, err := buf.ReadFrom(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		if encoding == "gzip" {
+			body, err = compress.Decompress(buf.Bytes())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		} else {
+			body = buf.Bytes()
+		}
+
 		short := rand.String(8)
 		data.Add(short, string(body))
 		w.Header().Add("Content-Type", "text/plain")
