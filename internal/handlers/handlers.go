@@ -38,13 +38,13 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		var body []byte
 		_, err := buf.ReadFrom(r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		if encoding == "gzip" {
 			body, err = compress.Decompress(buf.Bytes())
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
