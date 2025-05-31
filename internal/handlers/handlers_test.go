@@ -55,7 +55,7 @@ func TestGenerateHandler(t *testing.T) {
 			want: want{
 				code:        http.StatusInternalServerError,
 				response:    "",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 			data: storage.NewMemoryStorage(map[string]string{}),
 		},
