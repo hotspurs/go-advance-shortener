@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
 	"io"
@@ -48,14 +49,27 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 
 func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req Request
+		var encoding = r.Header.Get("Content-Encoding")
 		var buf bytes.Buffer
+		var body []byte
 		_, err := buf.ReadFrom(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if err = json.Unmarshal(buf.Bytes(), &req); err != nil {
+		if encoding == "gzip" {
+			body, err = compress.Decompress(buf.Bytes())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		} else {
+			body = buf.Bytes()
+		}
+
+		var req Request
+
+		if err = json.Unmarshal(body, &req); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
