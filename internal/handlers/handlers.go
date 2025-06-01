@@ -54,8 +54,13 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		}
 
 		short := rand.String(8)
-		fmt.Println("=>", string(body))
-		data.Add(string(body), short)
+		err = data.Add(string(body), short)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(config.BaseURL + "/" + short))
@@ -89,8 +94,12 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 			return
 		}
 		short := rand.String(8)
-		fmt.Println("=>", req.URL)
-		data.Add(req.URL, short)
+		err = data.Add(req.URL, short)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		var res Response
 		res.Result = config.BaseURL + "/" + short
 		w.Header().Add("Content-Type", "application/json")

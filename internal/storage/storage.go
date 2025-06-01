@@ -46,8 +46,8 @@ type FileStorage struct {
 
 type storageItem struct {
 	UUID        uuid.UUID `json:"uuid"`
-	OriginalUrl string    `json:"original_url"`
-	ShortUrl    string    `json:"short_url"`
+	OriginalURL string    `json:"original_url"`
+	ShortURL    string    `json:"short_url"`
 }
 
 func NewFileStorage(path string) (*FileStorage, error) {
@@ -70,8 +70,8 @@ func (m *FileStorage) Add(url string, short string) (err error) {
 	id := uuid.New()
 	storageItem := &storageItem{
 		UUID:        id,
-		ShortUrl:    short,
-		OriginalUrl: url,
+		ShortURL:    short,
+		OriginalURL: url,
 	}
 
 	data, err := json.Marshal(&storageItem)
@@ -106,12 +106,12 @@ func (m *FileStorage) Get(short string) string {
 			fmt.Println("Ошибка парсинга JSON:", err)
 			continue
 		}
-		result[item.ShortUrl] = item
+		result[item.ShortURL] = item
 	}
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println("Ошибка сканирования файла:", err)
 	}
 
-	return result[short].OriginalUrl
+	return result[short].OriginalURL
 }
