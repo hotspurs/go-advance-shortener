@@ -13,7 +13,12 @@ import (
 func main() {
 	cfg := config.Init()
 	r := chi.NewRouter()
-	data := storage.NewMemoryStorage(map[string]string{})
+	data, err := storage.NewFileStorage(cfg.FileStoragePath)
+
+	if err != nil {
+		panic(err)
+	}
+
 	log := logger.New(cfg.Debug)
 	sugar := log.Sugar
 	defer log.Sync()

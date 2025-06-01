@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Address string
-	BaseURL string
-	Debug   bool
+	Address         string
+	BaseURL         string
+	FileStoragePath string
+	Debug           bool
 }
 
 var (
@@ -21,9 +22,11 @@ func Init() *Config {
 	once.Do(func() {
 		address := flag.String("a", "localhost:8080", "HTTP server address")
 		baseURL := flag.String("b", "http://localhost:8080", "Base URL")
+		fileStoragePath := flag.String("f", "./storage.json", "File storage path")
 
 		envAddress := os.Getenv("SERVER_ADDRESS")
 		envBaseURL := os.Getenv("BASE_URL")
+		envFileStoragePath := os.Getenv("FILE_STORAGE_PATH")
 
 		envDebug := os.Getenv("DEBUG")
 
@@ -42,10 +45,15 @@ func Init() *Config {
 			baseURL = &envBaseURL
 		}
 
+		if envFileStoragePath != "" {
+			fileStoragePath = &envFileStoragePath
+		}
+
 		cfg = &Config{
-			Address: *address,
-			BaseURL: *baseURL,
-			Debug:   debug,
+			Address:         *address,
+			BaseURL:         *baseURL,
+			FileStoragePath: *fileStoragePath,
+			Debug:           debug,
 		}
 	})
 

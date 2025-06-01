@@ -12,7 +12,7 @@ import (
 )
 
 type Storage interface {
-	Add(key string, value string)
+	Add(key string, value string) error
 	Get(key string) string
 }
 
@@ -55,7 +55,7 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 
 		short := rand.String(8)
 		fmt.Println("=>", string(body))
-		data.Add(short, string(body))
+		data.Add(string(body), short)
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(config.BaseURL + "/" + short))
@@ -90,7 +90,7 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 		}
 		short := rand.String(8)
 		fmt.Println("=>", req.URL)
-		data.Add(short, req.URL)
+		data.Add(req.URL, short)
 		var res Response
 		res.Result = config.BaseURL + "/" + short
 		w.Header().Add("Content-Type", "application/json")
