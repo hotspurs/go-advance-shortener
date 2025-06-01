@@ -42,7 +42,8 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if encoding == "application/gzip" {
+		fmt.Println("1", encoding)
+		if encoding == "gzip" {
 			body, err = compress.Decompress(buf.Bytes())
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -53,6 +54,7 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		}
 
 		short := rand.String(8)
+		fmt.Println("=>", string(body))
 		data.Add(short, string(body))
 		w.Header().Add("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusCreated)
@@ -70,7 +72,7 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		if encoding == "application/gzip" {
+		if encoding == "application/x-gzip" {
 			body, err = compress.Decompress(buf.Bytes())
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
