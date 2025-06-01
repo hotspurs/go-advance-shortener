@@ -1,50 +1,34 @@
 package main
 
 import (
-	"io"
-	"net/http"
-	"strings"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
-	"github.com/hotspurs/go-advance-shortener/internal/rand"
+	"github.com/hotspurs/go-advance-shortener/internal/handlers"
+	logger "github.com/hotspurs/go-advance-shortener/internal/logger"
 	"github.com/hotspurs/go-advance-shortener/internal/storage"
+	"net/http"
 )
-
-type Storage interface {
-	Add(key string, value string)
-	Get(key string) string
-}
 
 func main() {
 	cfg := config.Init()
 	r := chi.NewRouter()
-	data := storage.NewMemoryStorage(map[string]string{})
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
-		GenerateHandler(w, r, data, cfg)
-	})
+	data, err := storage.NewFileStorage(cfg.FileStoragePath)
 
-	r.Get("/{link}", func(w http.ResponseWriter, r *http.Request) {
-		GetHandler(w, r, data)
-	})
-	http.ListenAndServe(cfg.Address, r)
-}
-
-func GenerateHandler(w http.ResponseWriter, r *http.Request, data Storage, config *config.Config) {
-	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		panic(err)
 	}
-	short := rand.String(8)
-	data.Add(short, string(body))
-	w.Header().Add("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(config.BaseURL + "/" + short))
-}
 
-func GetHandler(w http.ResponseWriter, r *http.Request, data Storage) {
-	short := strings.TrimPrefix(r.URL.Path, "/")
-	w.Header().Add("Location", data.Get(short))
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	log := logger.New(cfg.Debug)
+	sugar := log.Sugar
+	defer log.Sync()
+
+	sugar.Infof("Initialize")
+
+	r.Method("POST", "/", compress.WithGzip(logger.WithLogging(handlers.GenerateHandler(data, cfg), log)))
+	r.Method("POST", "/api/shorten", compress.WithGzip(logger.WithLogging(handlers.ShortenHandler(data, cfg), log)))
+	r.Method("GET", "/{link}", logger.WithLogging(handlers.GetHandler(data), log))
+
+	sugar.Infof("Server is listen on port %s", cfg.Address)
+	http.ListenAndServe(cfg.Address, r)
 }
