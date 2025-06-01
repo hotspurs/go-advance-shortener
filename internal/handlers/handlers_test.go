@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func getStorage() *storage.FileStorage {
+	store, _ := storage.NewFileStorage("./storage.json")
+
+	return store
+}
+
 func TestGenerateHandler(t *testing.T) {
 	cfg := config.Init()
 	type request struct {
@@ -43,7 +49,7 @@ func TestGenerateHandler(t *testing.T) {
 				response:    cfg.BaseURL,
 				contentType: "text/plain",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 		{
 			name: "GenerateNegative_BadBody",
@@ -57,7 +63,7 @@ func TestGenerateHandler(t *testing.T) {
 				response:    "",
 				contentType: "text/plain; charset=utf-8",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 	}
 
@@ -109,7 +115,7 @@ func TestShortenHandler(t *testing.T) {
 				response:    cfg.BaseURL,
 				contentType: "application/json",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 		{
 			name: "ShortenNegative_BadBody",
@@ -123,7 +129,7 @@ func TestShortenHandler(t *testing.T) {
 				response:    "",
 				contentType: "text/plain; charset=utf-8",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 	}
 
@@ -174,9 +180,7 @@ func TestGetHandler(t *testing.T) {
 				response:    "",
 				contentType: "",
 			},
-			data: storage.NewMemoryStorage(map[string]string{
-				"tdluNOuy": "https://ya.ru",
-			}),
+			data: getStorage(),
 		},
 		{
 			name: "GetNegative_UnknownKey",
@@ -190,7 +194,7 @@ func TestGetHandler(t *testing.T) {
 				response:    "",
 				contentType: "",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 	}
 
