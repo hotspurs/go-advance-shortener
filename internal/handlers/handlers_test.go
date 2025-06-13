@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -12,6 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func getStorage() *storage.FileStorage {
+	store, _ := storage.NewFileStorage("./storage.json")
+
+	return store
+}
 
 func TestGenerateHandler(t *testing.T) {
 	cfg := config.Init()
@@ -43,7 +49,7 @@ func TestGenerateHandler(t *testing.T) {
 				response:    cfg.BaseURL,
 				contentType: "text/plain",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 		{
 			name: "GenerateNegative_BadBody",
@@ -55,9 +61,9 @@ func TestGenerateHandler(t *testing.T) {
 			want: want{
 				code:        http.StatusInternalServerError,
 				response:    "",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 	}
 
@@ -65,7 +71,73 @@ func TestGenerateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
 			w := httptest.NewRecorder()
-			GenerateHandler(w, request, test.data, cfg)
+			GenerateHandler(test.data, cfg)(w, request)
+
+			res := w.Result()
+			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
+			defer res.Body.Close()
+			resBody, err := io.ReadAll(res.Body)
+
+			require.NoError(t, err, "unexpected error reading response body: %v", err)
+			assert.Contains(t, string(resBody), test.want.response, "expected response to contain %q, got %q", test.want.response, string(resBody))
+			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"), "expected content type %q, got %q", test.want.contentType, res.Header.Get("Content-Type"))
+		})
+	}
+}
+
+func TestShortenHandler(t *testing.T) {
+	cfg := config.Init()
+	type request struct {
+		method string
+		body   io.Reader
+		url    string
+	}
+	type want struct {
+		code        int
+		response    string
+		contentType string
+	}
+	tests := []struct {
+		data    Storage
+		name    string
+		want    want
+		request request
+	}{
+		{
+			name: "ShortenPositive",
+			request: request{
+				method: http.MethodPost,
+				url:    "/",
+				body:   bytes.NewReader([]byte("{\"url\": \"https://ya.ru\"}")),
+			},
+			want: want{
+				code:        http.StatusCreated,
+				response:    cfg.BaseURL,
+				contentType: "application/json",
+			},
+			data: getStorage(),
+		},
+		{
+			name: "ShortenNegative_BadBody",
+			request: request{
+				method: http.MethodPost,
+				url:    "/",
+				body:   errReader{},
+			},
+			want: want{
+				code:        http.StatusBadRequest,
+				response:    "",
+				contentType: "text/plain; charset=utf-8",
+			},
+			data: getStorage(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
+			w := httptest.NewRecorder()
+			ShortenHandler(test.data, cfg)(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
@@ -108,9 +180,7 @@ func TestGetHandler(t *testing.T) {
 				response:    "",
 				contentType: "",
 			},
-			data: storage.NewMemoryStorage(map[string]string{
-				"tdluNOuy": "https://ya.ru",
-			}),
+			data: getStorage(),
 		},
 		{
 			name: "GetNegative_UnknownKey",
@@ -124,7 +194,7 @@ func TestGetHandler(t *testing.T) {
 				response:    "",
 				contentType: "",
 			},
-			data: storage.NewMemoryStorage(map[string]string{}),
+			data: getStorage(),
 		},
 	}
 
@@ -132,7 +202,7 @@ func TestGetHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.request.method, test.request.url, test.request.body)
 			w := httptest.NewRecorder()
-			GetHandler(w, request, test.data)
+			GetHandler(test.data)(w, request)
 
 			res := w.Result()
 			assert.Equal(t, test.want.code, res.StatusCode, "expected status code %d, got %d", test.want.code, res.StatusCode)
