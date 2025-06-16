@@ -28,10 +28,10 @@ type MemoryStorage struct {
 	mu   sync.RWMutex
 }
 
-func (m *MemoryStorage) Add(key string, value string) (err error) {
+func (m *MemoryStorage) Add(url string, short string) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.data[key] = value
+	m.data[short] = url
 	return nil
 }
 
