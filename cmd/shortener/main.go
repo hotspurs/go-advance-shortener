@@ -21,10 +21,10 @@ func main() {
 
 	if cfg.DatabaseDSN != "" {
 		db, err := sql.Open("pgx", cfg.DatabaseDSN)
-		defer db.Close()
 		if err != nil {
 			panic(err)
 		}
+		defer db.Close()
 
 		data = storage.NewDatabaseStorage(db)
 	} else if cfg.FileStoragePath != "" {

@@ -26,8 +26,8 @@ type Response struct {
 func GetHandler(data Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		short := strings.TrimPrefix(r.URL.Path, "/")
-		original_url, _ := data.Get(short)
-		w.Header().Add("Location", original_url)
+		originalUrl, _ := data.Get(short)
+		w.Header().Add("Location", originalUrl)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})
 }
