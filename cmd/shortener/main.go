@@ -15,16 +15,26 @@ import (
 func main() {
 	cfg := config.Init()
 	r := chi.NewRouter()
-	data, err := storage.NewFileStorage(cfg.FileStoragePath)
+	var data handlers.Storage
+	var db *sql.DB
+	var err error
 
-	if err != nil {
-		panic(err)
-	}
+	if cfg.DatabaseDSN != "" {
+		db, err := sql.Open("pgx", cfg.DatabaseDSN)
+		defer db.Close()
+		if err != nil {
+			panic(err)
+		}
 
-	db, err := sql.Open("pgx", cfg.DatabaseDSN)
-	defer db.Close()
-	if err != nil {
-		panic(err)
+		data = storage.NewDatabaseStorage(db)
+	} else if cfg.FileStoragePath != "" {
+		data, err = storage.NewFileStorage(cfg.FileStoragePath)
+
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		data = storage.NewMemoryStorage(map[string]string{})
 	}
 
 	log := logger.New(cfg.Debug)

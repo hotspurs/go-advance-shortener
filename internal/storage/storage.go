@@ -2,6 +2,8 @@ package storage
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -26,16 +28,17 @@ type MemoryStorage struct {
 	mu   sync.RWMutex
 }
 
-func (m *MemoryStorage) Add(key string, value string) {
+func (m *MemoryStorage) Add(key string, value string) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.data[key] = value
+	return nil
 }
 
-func (m *MemoryStorage) Get(key string) string {
+func (m *MemoryStorage) Get(key string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.data[key]
+	return m.data[key], nil
 }
 
 type FileStorage struct {
@@ -85,7 +88,7 @@ func (m *FileStorage) Add(url string, short string) (err error) {
 	return err
 }
 
-func (m *FileStorage) Get(short string) string {
+func (m *FileStorage) Get(short string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -113,5 +116,44 @@ func (m *FileStorage) Get(short string) string {
 		fmt.Println("Ошибка сканирования файла:", err)
 	}
 
-	return result[short].OriginalURL
+	return result[short].OriginalURL, nil
+}
+
+type DatabaseStorage struct {
+	db *sql.DB
+	mu sync.RWMutex
+}
+
+func NewDatabaseStorage(db *sql.DB) *DatabaseStorage {
+	return &DatabaseStorage{
+		db: db,
+	}
+}
+
+func (m *DatabaseStorage) Add(url string, short string) (err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	id := uuid.New()
+	_, err = m.db.ExecContext(context.Background(), "INSERT INTO links (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, url, short)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DatabaseStorage) Get(short string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	row := m.db.QueryRowContext(context.Background(), "SELECT original_url FROM links WHERE short_url = $1", short)
+	var originalURL string
+	err := row.Scan(&originalURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return originalURL, nil
 }

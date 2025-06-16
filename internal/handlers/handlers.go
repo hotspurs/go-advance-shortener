@@ -3,7 +3,6 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
@@ -13,7 +12,7 @@ import (
 
 type Storage interface {
 	Add(key string, value string) error
-	Get(key string) string
+	Get(key string) (string, error)
 }
 
 type Request struct {
@@ -27,7 +26,8 @@ type Response struct {
 func GetHandler(data Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		short := strings.TrimPrefix(r.URL.Path, "/")
-		w.Header().Add("Location", data.Get(short))
+		original_url, _ := data.Get(short)
+		w.Header().Add("Location", original_url)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})
 }
@@ -38,11 +38,12 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		var buf bytes.Buffer
 		var body []byte
 		_, err := buf.ReadFrom(r.Body)
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Println("1", encoding)
+
 		if encoding == "gzip" {
 			body, err = compress.Decompress(buf.Bytes())
 			if err != nil {
