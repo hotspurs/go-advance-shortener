@@ -134,7 +134,7 @@ func (m *DatabaseStorage) Add(url string, short string) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := uuid.New()
-	_, err = m.db.ExecContext(context.Background(), "INSERT INTO links (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, url, short)
+	_, err = m.db.ExecContext(context.Background(), "INSERT INTO link (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, url, short)
 
 	if err != nil {
 		return err
@@ -147,7 +147,7 @@ func (m *DatabaseStorage) Get(short string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	row := m.db.QueryRowContext(context.Background(), "SELECT original_url FROM links WHERE short_url = $1", short)
+	row := m.db.QueryRowContext(context.Background(), "SELECT original_url FROM link WHERE short_url = $1", short)
 	var originalURL string
 	err := row.Scan(&originalURL)
 
