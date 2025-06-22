@@ -11,13 +11,13 @@ import (
 )
 
 type RequestBatchItem struct {
-	CorrelationId string `json:"correlation_id"`
-	OriginalUrl   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
 }
 
 type ResponseBatchItem struct {
-	CorrelationId string `json:"correlation_id"`
-	ShortUrl      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
 }
 
 func BatchHandler(data Storage, config *config.Config, logger *logger.Logger) http.HandlerFunc {
@@ -41,9 +41,12 @@ func BatchHandler(data Storage, config *config.Config, logger *logger.Logger) ht
 		for _, item := range req {
 			short := rand.String(8)
 			shorts = append(shorts, short)
-			urls = append(urls, item.OriginalUrl)
+			urls = append(urls, item.OriginalURL)
 		}
 
-		data.AddBatch(urls, shorts)
+		err = data.AddBatch(urls, shorts)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 }

@@ -9,6 +9,8 @@ import (
 	logger "github.com/hotspurs/go-advance-shortener/internal/logger"
 	"github.com/hotspurs/go-advance-shortener/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+	"log"
 	"net/http"
 )
 
@@ -21,9 +23,17 @@ func main() {
 	if cfg.DatabaseDSN != "" {
 		db, err := sql.Open("pgx", cfg.DatabaseDSN)
 		if err != nil {
-			panic(err)
+			log.Fatalf("DB: %v", err)
 		}
 		defer db.Close()
+
+		if err := goose.SetDialect("postgres"); err != nil {
+			log.Fatalf("Goose dialect error: %v", err)
+		}
+
+		if err := goose.Up(db, "db/migrations"); err != nil {
+			log.Fatalf("Goose up error: %v", err)
+		}
 
 		data = storage.NewDatabaseStorage(db)
 		r.Method("GET", "/ping", handlers.PingHandler(db))
