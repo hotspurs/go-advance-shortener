@@ -120,10 +120,16 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
-
+				var res Response
+				res.Result = config.BaseURL + "/" + shortURL
 				w.Header().Add("Content-Type", "application/json")
 				w.WriteHeader(http.StatusConflict)
-				w.Write([]byte(config.BaseURL + "/" + shortURL))
+				resp, err := json.Marshal(res)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Write(resp)
 				return
 			}
 

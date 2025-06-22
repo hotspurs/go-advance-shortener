@@ -208,11 +208,11 @@ func (m *DatabaseStorage) Get(short string) (string, error) {
 	return originalURL, nil
 }
 
-func (m *DatabaseStorage) GetShort(original_url string) (string, error) {
+func (m *DatabaseStorage) GetShort(originalURL string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	row := m.db.QueryRowContext(context.Background(), "SELECT short_url FROM link WHERE original_url = $1", original_url)
+	row := m.db.QueryRowContext(context.Background(), "SELECT short_url FROM link WHERE original_url = $1", originalURL)
 	var shortURL string
 	err := row.Scan(&shortURL)
 
