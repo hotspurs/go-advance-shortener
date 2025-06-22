@@ -51,6 +51,10 @@ func (m *MemoryStorage) Get(key string) (string, error) {
 	return m.data[key], nil
 }
 
+func (m *MemoryStorage) GetShort(key string) (string, error) {
+	return "", nil
+}
+
 type FileStorage struct {
 	path string
 	file *os.File
@@ -139,6 +143,10 @@ func (m *FileStorage) Get(short string) (string, error) {
 	return result[short].OriginalURL, nil
 }
 
+func (m *FileStorage) GetShort(key string) (string, error) {
+	return "", nil
+}
+
 type DatabaseStorage struct {
 	db *sql.DB
 	mu sync.RWMutex
@@ -198,4 +206,19 @@ func (m *DatabaseStorage) Get(short string) (string, error) {
 	}
 
 	return originalURL, nil
+}
+
+func (m *DatabaseStorage) GetShort(original_url string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	row := m.db.QueryRowContext(context.Background(), "SELECT short_url FROM link WHERE original_url = $1", original_url)
+	var shortURL string
+	err := row.Scan(&shortURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return shortURL, nil
 }

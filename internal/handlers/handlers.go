@@ -6,6 +6,8 @@ import (
 	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 	"strings"
 )
@@ -14,6 +16,7 @@ type Storage interface {
 	Add(key string, value string) error
 	AddBatch(urls []string, shorts []string) error
 	Get(key string) (string, error)
+	GetShort(key string) (string, error)
 }
 
 type Request struct {
@@ -59,6 +62,19 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		err = data.Add(string(body), short)
 
 		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+				short_url, err := data.GetShort(string(body))
+
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Add("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusConflict)
+				w.Write([]byte(config.BaseURL + "/" + short_url))
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -98,6 +114,19 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 		short := rand.String(8)
 		err = data.Add(req.URL, short)
 		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+				short_url, err := data.GetShort(req.URL)
+
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Add("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusConflict)
+				w.Write([]byte(config.BaseURL + "/" + short_url))
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
