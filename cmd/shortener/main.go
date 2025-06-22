@@ -45,6 +45,7 @@ func main() {
 
 	r.Method("POST", "/", compress.WithGzip(logger.WithLogging(handlers.GenerateHandler(data, cfg), log)))
 	r.Method("POST", "/api/shorten", compress.WithGzip(logger.WithLogging(handlers.ShortenHandler(data, cfg), log)))
+	r.Method("POST", "/api/shorten/batch", logger.WithLogging(handlers.BatchHandler(data, cfg, log), log))
 	r.Method("GET", "/{link}", logger.WithLogging(handlers.GetHandler(data), log))
 
 	sugar.Infof("Server is listen on port %s", cfg.Address)

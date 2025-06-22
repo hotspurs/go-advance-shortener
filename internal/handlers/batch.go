@@ -1,0 +1,49 @@
+package handlers
+
+import (
+	"encoding/json"
+	"github.com/hotspurs/go-advance-shortener/internal/logger"
+	"github.com/hotspurs/go-advance-shortener/internal/rand"
+	"io"
+	"net/http"
+
+	"github.com/hotspurs/go-advance-shortener/internal/config"
+)
+
+type RequestBatchItem struct {
+	CorrelationId string `json:"correlation_id"`
+	OriginalUrl   string `json:"original_url"`
+}
+
+type ResponseBatchItem struct {
+	CorrelationId string `json:"correlation_id"`
+	ShortUrl      string `json:"short_url"`
+}
+
+func BatchHandler(data Storage, config *config.Config, logger *logger.Logger) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Unable to read body", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		var req []RequestBatchItem
+
+		if err = json.Unmarshal(body, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		var urls []string
+		var shorts []string
+		for _, item := range req {
+			short := rand.String(8)
+			shorts = append(shorts, short)
+			urls = append(urls, item.OriginalUrl)
+		}
+
+		data.AddBatch(urls, shorts)
+	})
+}

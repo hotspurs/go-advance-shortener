@@ -12,6 +12,7 @@ import (
 
 type Storage interface {
 	Add(key string, value string) error
+	AddBatch(urls []string, shorts []string) error
 	Get(key string) (string, error)
 }
 

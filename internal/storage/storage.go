@@ -35,6 +35,16 @@ func (m *MemoryStorage) Add(url string, short string) (err error) {
 	return nil
 }
 
+func (m *MemoryStorage) AddBatch(urls []string, shorts []string) (err error) {
+	for i, url := range urls {
+		err := m.Add(url, shorts[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *MemoryStorage) Get(key string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -86,6 +96,16 @@ func (m *FileStorage) Add(url string, short string) (err error) {
 
 	_, err = m.file.Write(data)
 	return err
+}
+
+func (m *FileStorage) AddBatch(urls []string, shorts []string) (err error) {
+	for i, url := range urls {
+		err := m.Add(url, shorts[i])
+		if err != nil {
+			return err
+		}
+	}
+	return
 }
 
 func (m *FileStorage) Get(short string) (string, error) {
@@ -141,6 +161,28 @@ func (m *DatabaseStorage) Add(url string, short string) (err error) {
 	}
 
 	return nil
+}
+
+func (m *DatabaseStorage) AddBatch(urls []string, shorts []string) (err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for i, u := range urls {
+		id := uuid.New()
+		_, err := tx.ExecContext(context.Background(),
+			"INSERT INTO link (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, u, shorts[i])
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (m *DatabaseStorage) Get(short string) (string, error) {
