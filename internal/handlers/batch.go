@@ -35,18 +35,29 @@ func BatchHandler(data Storage, config *config.Config, logger *logger.Logger) ht
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		var res []ResponseBatchItem
 		var urls []string
 		var shorts []string
 		for _, item := range req {
 			short := rand.String(8)
 			shorts = append(shorts, short)
 			urls = append(urls, item.OriginalURL)
+			res = append(res, ResponseBatchItem{CorrelationID: item.CorrelationID, ShortURL: config.BaseURL + "/" + short})
 		}
 
 		err = data.AddBatch(urls, shorts)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+
+		w.Header().Add("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		resp, err := json.Marshal(res)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(resp)
 	})
 }
