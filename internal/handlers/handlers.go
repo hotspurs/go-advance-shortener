@@ -63,7 +63,7 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 
 		if err != nil {
 			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
-				short_url, err := data.GetShort(string(body))
+				shortURL, err := data.GetShort(string(body))
 
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -71,7 +71,7 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 
 				w.Header().Add("Content-Type", "text/plain")
 				w.WriteHeader(http.StatusConflict)
-				w.Write([]byte(config.BaseURL + "/" + short_url))
+				w.Write([]byte(config.BaseURL + "/" + shortURL))
 				return
 			}
 
@@ -115,15 +115,15 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 		err = data.Add(req.URL, short)
 		if err != nil {
 			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
-				short_url, err := data.GetShort(req.URL)
+				shortURL, err := data.GetShort(req.URL)
 
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 
-				w.Header().Add("Content-Type", "text/plain")
+				w.Header().Add("Content-Type", "application/json")
 				w.WriteHeader(http.StatusConflict)
-				w.Write([]byte(config.BaseURL + "/" + short_url))
+				w.Write([]byte(config.BaseURL + "/" + shortURL))
 				return
 			}
 
