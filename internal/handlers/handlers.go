@@ -3,17 +3,20 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/hotspurs/go-advance-shortener/internal/compress"
 	"github.com/hotspurs/go-advance-shortener/internal/config"
 	"github.com/hotspurs/go-advance-shortener/internal/rand"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"net/http"
 	"strings"
 )
 
 type Storage interface {
 	Add(key string, value string) error
-	Get(key string) string
+	AddBatch(urls []string, shorts []string) error
+	Get(key string) (string, error)
+	GetShort(key string) (string, error)
 }
 
 type Request struct {
@@ -27,7 +30,8 @@ type Response struct {
 func GetHandler(data Storage) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		short := strings.TrimPrefix(r.URL.Path, "/")
-		w.Header().Add("Location", data.Get(short))
+		originalURL, _ := data.Get(short)
+		w.Header().Add("Location", originalURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	})
 }
@@ -38,11 +42,12 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		var buf bytes.Buffer
 		var body []byte
 		_, err := buf.ReadFrom(r.Body)
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Println("1", encoding)
+
 		if encoding == "gzip" {
 			body, err = compress.Decompress(buf.Bytes())
 			if err != nil {
@@ -57,6 +62,19 @@ func GenerateHandler(data Storage, config *config.Config) http.HandlerFunc {
 		err = data.Add(string(body), short)
 
 		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+				shortURL, err := data.GetShort(string(body))
+
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+
+				w.Header().Add("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusConflict)
+				w.Write([]byte(config.BaseURL + "/" + shortURL))
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -96,6 +114,25 @@ func ShortenHandler(data Storage, config *config.Config) http.HandlerFunc {
 		short := rand.String(8)
 		err = data.Add(req.URL, short)
 		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+				shortURL, err := data.GetShort(req.URL)
+
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+				var res Response
+				res.Result = config.BaseURL + "/" + shortURL
+				w.Header().Add("Content-Type", "application/json")
+				w.WriteHeader(http.StatusConflict)
+				resp, err := json.Marshal(res)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				w.Write(resp)
+				return
+			}
+
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -2,6 +2,8 @@ package storage
 
 import (
 	"bufio"
+	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
@@ -26,16 +28,31 @@ type MemoryStorage struct {
 	mu   sync.RWMutex
 }
 
-func (m *MemoryStorage) Add(key string, value string) {
+func (m *MemoryStorage) Add(url string, short string) (err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.data[key] = value
+	m.data[short] = url
+	return nil
 }
 
-func (m *MemoryStorage) Get(key string) string {
+func (m *MemoryStorage) AddBatch(urls []string, shorts []string) (err error) {
+	for i, url := range urls {
+		err := m.Add(url, shorts[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *MemoryStorage) Get(key string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.data[key]
+	return m.data[key], nil
+}
+
+func (m *MemoryStorage) GetShort(key string) (string, error) {
+	return "", nil
 }
 
 type FileStorage struct {
@@ -85,7 +102,17 @@ func (m *FileStorage) Add(url string, short string) (err error) {
 	return err
 }
 
-func (m *FileStorage) Get(short string) string {
+func (m *FileStorage) AddBatch(urls []string, shorts []string) (err error) {
+	for i, url := range urls {
+		err := m.Add(url, shorts[i])
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (m *FileStorage) Get(short string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -113,5 +140,85 @@ func (m *FileStorage) Get(short string) string {
 		fmt.Println("Ошибка сканирования файла:", err)
 	}
 
-	return result[short].OriginalURL
+	return result[short].OriginalURL, nil
+}
+
+func (m *FileStorage) GetShort(key string) (string, error) {
+	return "", nil
+}
+
+type DatabaseStorage struct {
+	db *sql.DB
+	mu sync.RWMutex
+}
+
+func NewDatabaseStorage(db *sql.DB) *DatabaseStorage {
+	return &DatabaseStorage{
+		db: db,
+	}
+}
+
+func (m *DatabaseStorage) Add(url string, short string) (err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	id := uuid.New()
+	_, err = m.db.ExecContext(context.Background(), "INSERT INTO link (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, url, short)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DatabaseStorage) AddBatch(urls []string, shorts []string) (err error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	tx, err := m.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	for i, u := range urls {
+		id := uuid.New()
+		_, err := tx.ExecContext(context.Background(),
+			"INSERT INTO link (uuid, original_url, short_url) VALUES ($1, $2, $3)", id, u, shorts[i])
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (m *DatabaseStorage) Get(short string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	row := m.db.QueryRowContext(context.Background(), "SELECT original_url FROM link WHERE short_url = $1", short)
+	var originalURL string
+	err := row.Scan(&originalURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return originalURL, nil
+}
+
+func (m *DatabaseStorage) GetShort(originalURL string) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	row := m.db.QueryRowContext(context.Background(), "SELECT short_url FROM link WHERE original_url = $1", originalURL)
+	var shortURL string
+	err := row.Scan(&shortURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	return shortURL, nil
 }
